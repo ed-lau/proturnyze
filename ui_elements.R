@@ -5,7 +5,7 @@
 
 tagline <- function(){
         p(
-    h2("ProTurnyze: Online Visualization of Protein Turnover Data"),
+    h2("IsoVista: Web Visualization of Mass Isotope Enrichments"),
     br()
         )
         }

@@ -137,65 +137,6 @@ refitFunction <- function(hl, hldata, fitMethod="Nelder-Mead", fitModel="NS", ma
         hl
 }
 
-######
-######
-###### Models
-######
-######
-
-
-# The steady-state model - supply t, a, Amax, and k; return A0
-SSModel <- function(t, k, a, Amax) {
-        y <- a + (Amax - a) * (1 - exp(-k*t))
-        return(y)
-}
-
-# Solves dK/dA analytically
-SSModel_dk <- function(t, k, a, Amax, dA) {
-       k*exp(1)/(Amax-a)*dA
-}
-
-# The non-steady state equation - supply t, a, k, pss, kp, N; return A0.
-NSModel <- function(t, k, N, kp, pss, a){
-        z <- 0
-        for (n in 0:N) {
-                b <- factorial(N)/(factorial(n)*factorial(N-n))*(1-pss)^(N-n)*(pss)^n
-                bp <- (k/(k-n*kp))*b
-                y <- a*(bp*exp(-n*kp*t)+exp(-k*t)*(1/(N+1)-bp))
-                z <- y+z}
-        return(z)
-}
-
-# This function calculates dk of fitting, based on the analytical solution of dA/dk
-NSModel_dk <-function(x, k, N, kp, pss, a, dA){
-        z <- 0
-        for (n in 0:N) {
-                b <- factorial(N)/(factorial(n)*factorial(N-n))*(1-pss)^(N-n)*(pss)^n
-                bp <- (k/(k-n*kp))*b
-                y <- a *((n*kp)/(k*(k-n*kp))*bp*(exp(-k*x)-exp(-n*kp*x))-x*(1/(N+1)-bp)*exp(-k*x))                                                              
-                z <- y + z}
-        return(dA/z)
-}
-
-# This is an adaptaion of the Guan et al. two-compartment model - supply t, a, Amax, ksyn, and kdeg, return A0.
-CCModel <- function(t, kdeg, ksyn, a, Amax) {
-        
-        a + (Amax-a) * (1.0 - (exp(-t*kdeg)*ksyn - exp(-t*ksyn)*kdeg)/
-                            (ksyn - kdeg))
-
-}
-
-# This function calculates dk for fitting, based on the analytical solution of dA/dkdeg
-CCModel_dk <- function(t, kdeg, ksyn, a, Amax, dA) {
-        
-        z <- (Amax-a) * ((t*(ksyn-kdeg) -1)* exp(-t*kdeg) + exp(-t*ksyn))*ksyn / (ksyn-kdeg)^2
-        dkdeg <- dA/z
-        
-        #y <- (Amax-a) * (exp(-t*kdeg) - (1 + (ksyn - kdeg)*t) * exp(-ksyn*t))*kdeg/ (ksyn-kdeg)^2
-        #dksyn <- dA/y
-        
-        return(dkdeg)
-}
 
 
 ######
@@ -215,10 +156,11 @@ readhl <- reactive({
                 concat = paste0(.$Peptide, "[", .$z, "+]") 
                 oldk = .$k
                 oldSS = .$SS
+                olddk = .$dk
                 Amax = 0
                 k2 = .$k
                 len = nchar(gsub("\\(.*\\)","", .$Peptide))
-                data.frame(., SE, concat, oldk, Amax, oldSS, k2, len)
+                data.frame(., SE, concat, oldk, Amax, oldSS, olddk, k2, len)
         })
         glimpse(hl)          
         hl %>% ungroup()
@@ -321,7 +263,7 @@ getRefitPeptides <- reactive({
 output$refitPeptideSummary <- DT::renderDataTable({
         if(is.null(getRefitPeptides())) return(NULL)
         
-        getRefitPeptides() %>% dplyr::select(ID, Uniprot, Seq = concat, DP, k, oldk, dk, oldSS, SS, R2) #%>% 
+        getRefitPeptides() %>% dplyr::select(ID, Uniprot, Seq = concat, DP, k, oldk, dk, olddk, oldSS, SS, SE, R2) #%>% 
         
 }, selection="single",  options = list(lengthMenu = c(10,20), 
                                        pageLength = 10,
@@ -529,7 +471,7 @@ getRefitPeptides2 <- reactive({
 output$refitPeptideSummary2 <- DT::renderDataTable({
         if(is.null(getRefitPeptides2())) return(NULL)
         
-        getRefitPeptides2() %>% dplyr::select(ID, Uniprot, Seq = concat, DP, k, oldk, dk, oldSS, SS, R2) #%>% 
+        getRefitPeptides2() %>% dplyr::select(ID, Uniprot, Seq = concat, DP, k, oldk, dk, olddk, oldSS, SS, SE, R2) #%>% 
         
 }, selection="multiple",  options = list(lengthMenu = c(10,20), 
                                        pageLength = 10,

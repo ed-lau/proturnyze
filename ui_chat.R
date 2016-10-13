@@ -6,13 +6,13 @@
 chat_page <- function(){
         
         
-        tabPanel("Chat",
+        tabPanel("Help",
                  tagline(),
                  sidebarLayout(
                          sidebarPanel(
-                                 h3("Chatroom"),
+                                 h3("Help and Feedback"),
                                  tags$hr(),
-                                 p("Ask questions and share your findings here."),
+                                 p("Provide feedback, ask questions, and share your findings here."),
                                  br()
                                  ), 
                          mainPanel(
@@ -56,7 +56,7 @@ chat_page <- function(){
                                                          # Create a spot for a dynamic UI containing the list of users.
                                                          uiOutput("userList"),
                                                          tags$hr(),
-                                                         helpText("Available Helpers: ","Maggie Lam", "Brian Bleakley")
+                                                         helpText("--------")
                                                  )
                                          )
                                  )
