@@ -1,30 +1,27 @@
 
 interactive_page <- function() {
 
-        tabPanel("Interactive Fitting",
+        tabPanel("Peptide-Centric Fitting",
                 tagline(),
                 wellPanel(
                         h3("Step 1: Choose Organ and Label"),
                         p("See documentation for details (coming soon)."),
                         fluidRow(
                                 column(4,
-                                        radioButtons("livOrgan", "Choose an organ to display: ", 
+                                        radioButtons("livOrgan", "Choose an organ dataset: ", 
                                         c("Heart" = "h",
                                         "Kidney" = "k",
                                         "Liver" = "l",
                                         "Muscle" = "m"),
                                         selected = "h")),
                                 column(4,
-                                        radioButtons("livLabel", "Choose a labeling method: ", 
+                                        radioButtons("livLabel", "Choose a labeling method dataset: ", 
                                         c("Amino acid" = "aa"),
                                         selected = "aa" )),
                                 column(4,
-                                       radioButtons("livFitMethod", "Choose an optimization algorithm: ", 
-                                                    c("Simplex (Nelder-Mead)" = "Nelder-Mead",
-                                                      "Gradient/Quasi-Newton (Broyden-Fletcher-Goldfarb-Shanno)" = "BFGS",
-                                                      "Secant/Bisection (Brent-Dekker)" = "Brent"),
-                                                    selected = "Nelder-Mead"))
-                        )
+                                       fileInput('file1', 'Upload custom peptide data:'),
+                                       fileInput('file2', 'Upload custom isotopomer data:'))
+                                )
                 
                 ),
                 hr(),
@@ -60,9 +57,20 @@ interactive_page <- function() {
                                                    choices = list("Best-fit curve"=1, "Residual plot"=2), 
                                                    selected=1),
                                        hr(),
-                                       sliderInput("livFitting_kp", "Select precursor turnover rate:", min = 0.01, max = 2, step = 0.01, value = 0.3),
+                                       
+                                       # Changing to numerical input per request
+                                       #sliderInput("livFitting_kp", "Select precursor turnover rate:", min = 0.01, max = 2, step = 0.01, value = 0.3),
+                                       numericInput("livFitting_kp", label = "Select precursor turnover rate:", value = 0.3, min=0.01, max=10, step=0.01),
                                        hr(),
-                                       sliderInput("livFitting_pss", "Select plateau precursor enrichment:", min = 0.01, max = 0.5, step = 0.01, value = 0.4),
+                                       # Changing to numerical input per request
+                                       #sliderInput("livFitting_pss", "Select plateau precursor enrichment:", min = 0.01, max = 0.5, step = 0.01, value = 0.4),
+                                       numericInput("livFitting_pss", label = "Select plateau precursor enrichment:", value=0.4, min=0.01, max=1, step=0.01),
+                                       hr(),
+                                       radioButtons("livFitMethod", "Select optimization algorithm: ", 
+                                                    c("Simplex (Nelder-Mead)" = "Nelder-Mead",
+                                                      "Gradient/Quasi-Newton (Broyden-Fletcher-Goldfarb-Shanno)" = "BFGS",
+                                                      "Secant/Bisection (Brent-Dekker)" = "Brent"),
+                                                    selected = "Nelder-Mead"),
                                        br()
                                 ),
                                 column(4,

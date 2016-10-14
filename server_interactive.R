@@ -1,3 +1,25 @@
+
+######
+######
+###### Equations for Documentation
+######
+######
+
+output$SS_Model_Mathjax <- renderUI({
+        withMathJax(
+                helpText('First-order kinetic model
+                         $$ a + (A_{max} - a) \\cdot \\left( 1 - e^{-k \\cdot t} \\right) $$'))
+})
+
+output$CC_Model_Mathjax <- renderUI({
+        withMathJax(
+                helpText('Simple two-compartment kinetic model
+                         $$ a + (A_{max} - a) \\cdot \\left( 1 - \\frac{ e^{-k \\cdot t} \\cdot k_p - 
+                         e^{-k_p \\cdot t} \\cdot k}{k_p - k} \\right)$$'))
+})
+
+
+
 ######
 ######
 ###### Interactive Refitting Functions
@@ -45,7 +67,7 @@ livRefitSinglePeptideFunction <- function(hl,
         ds <- hldata %>% filter(ID == row_id)
         
         # LOOP VERSION
-        withProgress(message = 'Refitting Data...', value = 0.5, {
+        withProgress(message = 'Refitting Data...', value = 0.8, {
                
                 if(fitModel == "SteadyStateOneParameter"){
 
@@ -76,7 +98,7 @@ livRefitSinglePeptideFunction <- function(hl,
                         dk <- sapply(ds$t, function(x) CCModel_dk(x, Optimize$par, kp, a, Amax, SE)) %>% abs() %>% min()
                         
                 }
-                
+                incProgress(0.2)
                 R2 <- 1- (SS/(sum((ds$A0 - mean(ds$A0))^2)))
 
         })
@@ -95,15 +117,19 @@ livRefitSinglePeptideFunction <- function(hl,
 ######
 
 livRead_hl <- reactive ({
-       
-        organ <- input$livOrgan 
-        label_type <- input$livLabel 
-        # 
-        file_path <- paste0("data/", label_type, "_", organ, ".txt")
         
+       
         withProgress(message = 'Reading Data...', value = 0.2, {
                 
-        hl <- read.table(file_path, header=T, fill=T, as.is=T, sep="\t") 
+        
+        organ <- input$livOrgan 
+        label_type <- input$livLabel 
+        file_path <- paste0("data/", label_type, "_", organ, ".txt")
+            
+        # Override with user uploaded file    
+        if (!is.null(input$file1) & !is.null(input$file2)) {file_path <- input$file1$datapath}
+                
+        hl <- read.table(file_path, header=T, fill=T, as.is=T, sep="\t", quote="")
         
         incProgress(0.5)
         
@@ -134,11 +160,14 @@ livRead_hldata <- reactive({
 
         organ <- input$livOrgan
         label_type <- input$livLabel
-        
         file_path <- paste0("data/", label_type, "_", organ, "_data.txt")
         
-        hldata <- read.table(file_path, header=T, fill=T, as.is=T, sep="\t")
-
+        # Override with user uploaded file
+        if (!is.null(input$file1) & !is.null(input$file2)) {file_path <- input$file2$datapath}
+        
+        hldata <- read.table(file_path, header=T, fill=T, as.is=T, sep="\t", quote="")
+        
+        
 })   
 
 
@@ -158,9 +187,8 @@ livFilterPeptides <- reactive({
                                    DP <= input$livFilter_DP[2],
                                    ess >= input$livFilter_ess[1],
                                    ess <= input$livFilter_ess[2])
-        
+
         hl
-        
         
 })
 

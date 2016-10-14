@@ -3,7 +3,7 @@ library(shiny); library(shinythemes); library(networkD3); library(plotly)
 #source("about_page.R"); source("news_page.R"); source("doc_page.R"); 
 source("ui_elements.R"); source("ui_browse.R"); source("ui_enrich.R")
 source("ui_analyze.R"); source("ui_instructions.R"); source("ui_chat.R")
-source("ui_refit.R"); source("ui_interactive.R")
+source("ui_refit.R"); source("ui_interactive.R"); source("ui_documentation.R")
 ##################### END HOUSEKEEPING ###########################
 
 
@@ -19,5 +19,6 @@ shinyUI(
                 #refit_page(),
                 #browse_page(),
                 #enrich_page(),
+                documentation_page(),
                 chat_page()
 ))
