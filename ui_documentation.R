@@ -17,7 +17,7 @@ documentation_page <- function(){
                                  tags$hr(),
                                  h4("About"),
                                  p("Server Version:"),
-                                 p(code("1.0.01")),
+                                 p(code("1.1.1")),
                                  br(),
                                  p("Gene Ontology Updated:"),
                                  p(code(textOutput("GOUpdateDate"))),
@@ -28,7 +28,7 @@ documentation_page <- function(){
                          mainPanel(
                                  h3("Introduction"),
                                  p("IsoVista allows users to visualize stable isotope enriched protein turnover experiment data. Follow
-                                   the instructions on the ", code("Peptide-Centric Fitting"), " page to get started. Protein-Centric 
+                                   the instructions on the ", code("Analysis > Peptide-Centric Fitting"), " tab to get started. Protein-Centric 
                                    Fitting function will be implemented in the near future. "),
                                  hr(),
                                  h3("Data format requirements"),
@@ -53,11 +53,15 @@ documentation_page <- function(){
                                  hr(),
                                  h3("Kinetic Models"),
                                  p("The steady-state model follows classic first-order kinetics, with slight
-                                   modifications in implementation for heavy water labeling noted in Kim et al. 2012."),
+                                   modifications in implementation for heavy water labeling noted in Kim et al. Mol Cell Proteomics. 2012."),
                                  uiOutput("SS_Model_Mathjax"),
                                  p("The two-compartment model is adapted
-                                   from Guan et al. 2012, with slight modifications noted in Lam et al. 2014 for heavy water labeling."),
+                                   from Guan et al. Anal Chem. 2012, with slight modifications noted in Lam et al. J Clin Invest. 2014 for heavy water labeling."),
                                  uiOutput("CC_Model_Mathjax"),
+                                 hr(),
+                                 h3("Peptide Essentiality"),
+                                 p("Esssentiality is calculated as the average of synthetic flux of each amino in the sequence
+                                   based on Reeds J Nutr. 2000."),
                                  hr(),
                                  h3("References"),
                                  # p(strong("Additional information on kinetic models for heavy water labeling:")),
