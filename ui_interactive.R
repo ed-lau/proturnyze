@@ -133,11 +133,13 @@ interactive_page <- function() {
                                                          br()
                                                   ),
                                                   column(4,
-                                                          #plotOutput("livDisplayProteinPeptide_SS1")
+                                                          plotOutput("livDisplayProteinPeptide_SS1"),
                                                           br()
                                                   ),
                                                   column(4,
-                                                         plotOutput("livDisplayProteinPeptide_CC1"))
+                                                         plotOutput("livDisplayProteinPeptide_CC1"),
+                                                         br()
+                                                  )
                                                   )
                                           
                                 ),
