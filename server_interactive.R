@@ -70,6 +70,7 @@ livRefitSinglePeptideFunction <- function(hl,
         output_for_all_id <- list()
         
         for (i in 1:length(ids)){
+                incProgress(0.5/num_ids)
                         
                 row_id <- ids[i]
                 
@@ -119,13 +120,14 @@ livRefitSinglePeptideFunction <- function(hl,
                         
                 }
                 
-                incProgress(0.5/num_ids)
+                
                 R2 <- 1- (SS/(sum((ds$A0 - mean(ds$A0))^2)))
                 
                 output_for_this_id <- list(round(k, 3),
                                            round(dk, 3),
                                            round(R2, 3))
                 
+                # Merge all the outputs from each ID into a nested list.
                 output_for_all_id[[length(output_for_all_id)+1]] <- output_for_this_id
 
         }
@@ -177,7 +179,7 @@ livRead_hl <- reactive ({
         #         
         # }) %>% ungroup()
         
-        # Mutate version test (cal-essentiality doesn't work yet with mutate)
+        
         hl <- hl %>% ungroup() %>% dplyr::mutate(concat = paste0(Peptide, "[", z, "+]"),
                                    #N = calcLabelingSite(Peptide)[1],
                                    #a = calc_thr_a(Peptide),
@@ -185,9 +187,9 @@ livRead_hl <- reactive ({
                                    len = nchar(gsub("\\(.*\\)","", Peptide)),
                                    ess = sapply(Peptide, calc_essentiality) %>% round(2),
                                    num_k = stringr::str_count(Peptide, "K"))
-
-
-        })
+        
+                                })
+        
         
         hl 
         
@@ -235,7 +237,7 @@ output$livDisplayPeptides <- DT::renderDataTable({
         
         if(!is.null(livFilterPeptides())) livFilterPeptides() %>% dplyr::select(ID, Uniprot, Peptide, z, DP, ess)
         
-        }, selection="single",  options = list(pageLength=10,
+        }, selection="single",  options = list(pageLength=8,
                                                lengthChange=F,
                                                filter="top")
         )   
@@ -253,7 +255,17 @@ output$livDisplayPeptideText <- renderText({
 # The core function to display a fitted peptide or the residual. All plots should call this from wrappers.
 # This is not a reactive so all variables must be passed as arguments
 
-livPlotPeptideFunction <- function (hl, hldata, labelMethod, plotModel, plotType, toggleResidual, pss, kp, fit){
+livPlotPeptideFunction <- function (hl, 
+                                    hldata, 
+                                    labelMethod, 
+                                    plotModel="TwoCompartment", 
+                                    plotType, 
+                                    toggleResidual, 
+                                    pss, 
+                                    kp, 
+                                    fit,
+                                    isProtein=F,
+                                    R2filter=c(0,1)) {
         
         
         # Get a list of all the IDs present in the hl file
@@ -304,56 +316,75 @@ livPlotPeptideFunction <- function (hl, hldata, labelMethod, plotModel, plotType
                
         # Prepare GGplot 
         g <- ggplot(data = hldata, aes(x = t, y = A0))
-        g <- g + geom_point() 
-
         
+
+        withProgress (message = 'Plotting Graph...', value = 0.5, {
         # Draw each of the fitted peptide
         for (i in 1:length(ids)){
-                
+                incProgress(0.5/length(ids))
                 
                 # Get the optimized k, dk, and R2
                 k = fit[i] %>% unlist() %>% (function(x) x[1])
                 dk= fit[i] %>% unlist() %>% (function(x) x[2])
                 R2= fit[i] %>% unlist() %>% (function(x) x[3])
                 
-
+                
+                if ((R2 > R2filter[1] & R2 < R2filter[2]) | isProtein==F){
+                g <- g + geom_point(data = hldata %>% filter(ID %in% ids[i]), col="black") 
+                } else {
+                g <- g + geom_point(data = hldata %>% filter(ID %in% ids[i]), col="grey")       
+                }
+                
                 if (plotModel == "SteadyState"){
                         
-                        g <- g + stat_function(fun = SSModel,
+                        # If this is a protein plot, only add the line when the R2 is within filter
+                        if ((R2 > R2filter[1] & R2 < R2filter[2]) | isProtein==F){
+                        # The "regular" stat_function syntax (fun= , args=, etc.) is required if we want to loop
+                        g <- g + stat_function(fun=SSModel,
                                                args=list(k=k, 
                                                          a=a, 
-                                                         Amax=Amax) 
+                                                         Amax=Amax),
+                                               alpha=0.33
                                                )
+                        }
                         print(paste0("added ggplot for ", i, " of ", num_ids))
 
                         
-                        fitTitle = paste0("Combined First-Order Kinetics Curve\n of ", num_ids, " peptides")
-                        if(num_ids == 1){
+                        fitTitle = paste0("Protein-Level First-Order Kinetics Curve \n of ", num_ids, " Input Peptide(s)")
+                        # Only add fitting error lines if displaying one peptide
+                        if(isProtein==F & num_ids == 1){
                                 g <- g + stat_function(fun = function(x) SSModel(x, k+dk, a, Amax), color = "red")
                                 g <- g + stat_function(fun = function(x) SSModel(x, k^2/(k+dk), a, Amax), color="red")
-                                fitTitle <- paste0("First-Order Kinetics Model\n", "Peptide: ", hl$concat, "\n k: ", k, " R2: ", R2)
+                                fitTitle <- paste0("First-Order Kinetics Model \n", "Peptide: ", hl$concat, "\n k: ", k, " R2: ", R2)
                                 residualTitle = "First-Order Kinetics Model - Residual Plot"
                         }
                         
                 } 
                 
                 if (plotModel == "TwoCompartment") {
+                        
+                        # If this is a protein plot, only add the line when the R2 is within filter
+                        if ((R2 > R2filter[1] & R2 < R2filter[2]) | isProtein==F){
+                        # The "regular" stat_function syntax (fun= , args=, etc.) is required if we want to loop
                         g <- g + stat_function(fun = CCModel,
                                                args=list(kdeg=k, 
                                                          ksyn=kp, 
                                                          a=a, 
-                                                         Amax=Amax)
+                                                         Amax=Amax),
+                                               alpha=0.33
                                                )
+                        }
                         
                         print(paste0("added ggplot for ", i, " of ", num_ids))
 
                         
-                        fitTitle = paste0("Combined Two-Compartment Kinetics Curve\n of ", num_ids, " peptides")
-                        if(num_ids == 1){
+                        fitTitle = paste0("Protein-Level 2-Compartment Kinetics Curve \n of ", num_ids, " Input Peptide(s)")
+                        # Only add fitting error lines if displaying one peptide
+                        if(isProtein == F & num_ids == 1){
                                 g <- g + stat_function(fun = function(x) CCModel(x, k+dk, kp, a, Amax), color = "red")
                                 g <- g + stat_function(fun = function(x) CCModel(x, k^2/(k+dk), kp, a, Amax), color="red")
                                 
-                                fitTitle <- paste0("Two Compartment Kinetics Model\n", "Peptide: ", hl$concat, "\n k: ", k, " R2: ", R2)
+                                fitTitle <- paste0("Two Compartment Kinetics Model \n", "Peptide: ", hl$concat, "\n k: ", k, " R2: ", R2)
                                 residualTitle = "Two Compartment Kinetics Model - Residual Plot"
                         }
                 }
@@ -364,10 +395,12 @@ livPlotPeptideFunction <- function (hl, hldata, labelMethod, plotModel, plotType
                 }
                 
         }
+        })
         
         #Find x limit
-        gx <- ggplot_build(g)$panel$ranges[[1]]$x.range[2]
-        gy <- ggplot_build(g)$panel$ranges[[1]]$y.range[2]
+        gx <- max(ggplot_build(g)$data[[1]]$x)
+        gy <- max(ggplot_build(g)$data[[1]]$y)
+        
         g <- g + xlim(0, gx) + ggtitle(fitTitle)
         
         # Plot residual plot instead of best-fit curve
@@ -390,7 +423,7 @@ livPlotPeptideFunction <- function (hl, hldata, labelMethod, plotModel, plotType
         
 
 
-# Display individual peptides from the refitting results
+# Display individual peptides from the refitting results (STEADY STATE GRAPH)
 output$livDisplayPeptide_SS1 <- renderPlot({
         
         # Get the dataset
@@ -425,11 +458,13 @@ output$livDisplayPeptide_SS1 <- renderPlot({
                            toggleResidual=input$livToggleResidual,
                            pss=input$livFitting_pss,
                            kp=input$livFitting_kp,
-                           fit=fit)
+                           fit=fit,
+                           isProtein=F,
+                           R2filter=c(0,1))
         
 }, bg="transparent")
 
-# Display individual peptides from the refitting results
+# Display individual peptides from the refitting results (Two-Compartment Graph)
 output$livDisplayPeptide_CC1 <- renderPlot({
         
         # Get the dataset
@@ -464,7 +499,9 @@ output$livDisplayPeptide_CC1 <- renderPlot({
                            toggleResidual=input$livToggleResidual,
                            pss=input$livFitting_pss,
                            kp=input$livFitting_kp,
-                           fit=fit)
+                           fit=fit,
+                           isProtein=F,
+                           R2filter=c(0,1))
         
 }, bg="transparent")
 
@@ -496,8 +533,14 @@ livFilterProteins <- reactive({
 # Display the proteins from the dataset on a data table
 output$livDisplayProteins <- DT::renderDataTable({
         
-        if(!is.null(livFilterProteins())) livFilterProteins() %>% dplyr::select(Uniprot, num_pep)
-        
+        if(!is.null(livFilterProteins())) {
+                
+                withProgress (message = 'Retrieving Annotations...', value = 0.5, {
+                annot <- annotations()
+                incProgress(0.3)
+                livFilterProteins() %>% left_join(annot) %>% dplyr::select(Uniprot, GN, num_pep)
+                })
+                }
 }, selection="single",  options = list(pageLength=10,
                                        lengthChange=F,
                                        filter="top")
@@ -533,7 +576,12 @@ livFilterProteinPeptides <- reactive({
         
         hl <- hl %>% dplyr::filter(Uniprot %in% selected_uniprot,
                                    DP >= input$livFilter_pro_pep_DP[1],
-                                   DP <= input$livFilter_pro_pep_DP[2])
+                                   DP <= input$livFilter_pro_pep_DP[2],
+                                   
+                                   num_k >= input$livFilter_pro_pep_num_k[1],
+                                   num_k <= input$livFilter_pro_pep_num_k[2]
+                                   
+                                   )
         
         hl
         
@@ -545,7 +593,7 @@ output$livDisplayProteinPeptides <- DT::renderDataTable({
         if(!is.null(livFilterProteinPeptides())) livFilterProteinPeptides() %>% dplyr::select(ID, Uniprot, Peptide, z, DP, ess)
         
 }, selection="multiple",  options = list(pageLength=10,
-                                       lengthChange=F,
+                                       lengthChange=T,
                                        filter="top")
 )   
 
@@ -561,9 +609,10 @@ output$livDisplayProteinPeptideText <- renderText({
 
 
 
-
-# Display all selected peptides from the selected protein
-output$livDisplayProteinPeptide_SS1 <- renderPlot({
+# Fit all selected peptides form selected protein with Steady State
+livFitProteinPeptide_SS1 <- reactive({
+        
+        input$livProteinPeptideGoButton
         
         # Get the dataset
         hl <- livFilterProteinPeptides()
@@ -571,7 +620,7 @@ output$livDisplayProteinPeptide_SS1 <- renderPlot({
         if(nrow(hl)==0) return(NULL)
         
         # Get the selected row
-        s <- input$livDisplayProteinPeptides_rows_selected %>% as.integer()
+        s <- isolate(input$livDisplayProteinPeptides_rows_selected) %>% as.integer()
         if(!length(s)) return(NULL)
         hl <- hl %>% slice(s)
         
@@ -580,14 +629,38 @@ output$livDisplayProteinPeptide_SS1 <- renderPlot({
         
         # Get the fitted values
         # Get optimized k
-        fit <- livRefitSinglePeptideFunction(hl=hl, 
-                                             hldata=hldata, 
-                                             #row_id=row_id, 
-                                             fitMethod=input$livFitMethod,
-                                             fitModel="SteadyStateOneParameter",
-                                             labelMethod=isolate(input$livLabel),
-                                             pss=input$livFitting_pss,
-                                             kp=input$livFitting_kp)
+        livRefitSinglePeptideFunction(hl=hl, 
+                                     hldata=hldata, 
+                                     #row_id=row_id, 
+                                     fitMethod=input$livFitMethod,
+                                     fitModel="SteadyStateOneParameter",
+                                     labelMethod=isolate(input$livLabel),
+                                     pss=input$livFitting_pss,
+                                     kp=input$livFitting_kp)
+
+        })
+
+# Display all selected peptides from the selected protein
+output$livDisplayProteinPeptide_SS1 <- renderPlot({
+        
+        if (is.null(livFitProteinPeptide_SS1())) return(NULL)
+        
+        
+        input$livProteinPeptideGoButton
+        
+        # Get the dataset
+        hl <- livFilterProteinPeptides()
+        if(is.null(hl)) return(NULL)
+        if(nrow(hl)==0) return(NULL)
+        
+        # Get the selected row
+        s <- isolate(input$livDisplayProteinPeptides_rows_selected) %>% as.integer()
+        if(!length(s)) return(NULL)
+        hl <- hl %>% slice(s)
+        
+        # Get the hl-data RIA values then filter by selected ID
+        hldata <- livRead_hldata() %>% filter(ID %in% hl$ID)
+        
         
         # Display GG Plot using the fitted values
         livPlotPeptideFunction(hl=hl,
@@ -598,15 +671,18 @@ output$livDisplayProteinPeptide_SS1 <- renderPlot({
                                toggleResidual=input$livToggleResidual,
                                pss=input$livFitting_pss,
                                kp=input$livFitting_kp,
-                               fit=fit)
+                               fit=livFitProteinPeptide_SS1(),
+                               isProtein=T,
+                               R2filter=input$livFilter_pro_pep_R2)
         
 }, bg="transparent")
 
 
 
-
-# Display all selected peptides from the selected protein
-output$livDisplayProteinPeptide_CC1 <- renderPlot({
+# Fit all selected peptides from the selected proteins with Two-Compartment
+livFitProteinPeptide_CC1 <- reactive({
+        
+        input$livProteinPeptideGoButton
         
         # Get the dataset
         hl <- livFilterProteinPeptides()
@@ -614,7 +690,7 @@ output$livDisplayProteinPeptide_CC1 <- renderPlot({
         if(nrow(hl)==0) return(NULL)
         
         # Get the selected row
-        s <- input$livDisplayProteinPeptides_rows_selected %>% as.integer()
+        s <- isolate(input$livDisplayProteinPeptides_rows_selected) %>% as.integer()
         if(!length(s)) return(NULL)
         hl <- hl %>% slice(s)
         
@@ -623,7 +699,7 @@ output$livDisplayProteinPeptide_CC1 <- renderPlot({
         
         # Get the fitted values
         # Get optimized k
-        fit <- livRefitSinglePeptideFunction(hl=hl, 
+        livRefitSinglePeptideFunction(hl=hl, 
                                              hldata=hldata, 
                                              #row_id=row_id, 
                                              fitMethod=input$livFitMethod,
@@ -631,6 +707,30 @@ output$livDisplayProteinPeptide_CC1 <- renderPlot({
                                              labelMethod=isolate(input$livLabel),
                                              pss=input$livFitting_pss,
                                              kp=input$livFitting_kp)
+        
+})
+
+
+# Display all selected peptides from the selected protein
+output$livDisplayProteinPeptide_CC1 <- renderPlot({
+
+        
+        if (is.null(livFitProteinPeptide_CC1()))  return(NULL)
+        
+        input$livProteinPeptideGoButton
+        
+        # Get the dataset
+        hl <- livFilterProteinPeptides()
+        if(is.null(hl)) return(NULL)
+        if(nrow(hl)==0) return(NULL)
+        
+        # Get the selected row
+        s <- isolate(input$livDisplayProteinPeptides_rows_selected) %>% as.integer()
+        if(!length(s)) return(NULL)
+        hl <- hl %>% slice(s)
+        
+        # Get the hl-data RIA values then filter by selected ID
+        hldata <- livRead_hldata() %>% filter(ID %in% hl$ID)
         
         # Display GG Plot using the fitted values
         livPlotPeptideFunction(hl=hl,
@@ -641,7 +741,60 @@ output$livDisplayProteinPeptide_CC1 <- renderPlot({
                                toggleResidual=input$livToggleResidual,
                                pss=input$livFitting_pss,
                                kp=input$livFitting_kp,
-                               fit=fit)
+                               fit=livFitProteinPeptide_CC1(),
+                               isProtein=T,
+                               R2filter=input$livFilter_pro_pep_R2)
         
-}, bg="transparent")
+        }, bg="transparent")
 
+
+output$livDisplayProteinPeptideSS1Text <- renderText({
+        if(!is.null(livFitProteinPeptide_SS1())){
+                
+                # Melting the nested list from the fitted value. 1 is k, 2 is dk, 3 is R2
+                df <- melt(livFitProteinPeptide_SS1())
+                
+                # Filter the datafarme with R2
+                results_to_let_in <-  df %>% filter(L2 == 3) %>% filter(value > input$livFilter_pro_pep_R2[1]) %>% filter(value < input$livFilter_pro_pep_R2[2]) %>% dplyr::select(L1) %>% unlist()
+                
+                # Pick out all the remaining k values
+                df <- df %>% filter(L2 == 1) %>% filter(L1 %in% results_to_let_in)
+                
+                # Calculate geometric mean/log-average (exponent of mean of logs)
+                geom.mean = 2^(mean(log2(unlist(df$value)))) 
+                
+                # Calculate geometric CV if more than 1 peptide
+                if (nrow(df) >1) {
+                        geom.cv = sqrt(exp(sd(log(df$value))^2) - 1) * 100 
+                } else {geom.cv = Inf}
+                
+                paste0('After filtering, ', nrow(df), ' peptides remain. Geometric mean of k is ', geom.mean %>% round(3), ' and geometric CV is ', geom.cv %>% round(2)," %.")
+        }
+})
+
+output$livDisplayProteinPeptideCC1Text <- renderText({
+        
+        if(!is.null(livFitProteinPeptide_CC1())){
+                
+                # Melting the nested list from the fitted value. 1 is k, 2 is dk, 3 is R2
+                df <- melt(livFitProteinPeptide_CC1())
+                
+                # Filter the datafarme with R2
+                results_to_let_in <-  df %>% filter(L2 == 3) %>% filter(value > input$livFilter_pro_pep_R2[1]) %>% filter(value < input$livFilter_pro_pep_R2[2]) %>% dplyr::select(L1) %>% unlist()
+                
+                # Pick out all the remaining k values
+                df <- df %>% filter(L2 == 1) %>% filter(L1 %in% results_to_let_in)
+  
+                # Calculate geometric mean/log-average (exponent of mean of logs)
+                geom.mean = 2^(mean(log2(unlist(df$value)))) 
+                
+                # Calculate geometric CV if more than 1 peptide
+                if (nrow(df) >1) {
+                        geom.cv = sqrt(exp(sd(log(df$value))^2) - 1) * 100 
+                        } else {geom.cv = Inf}
+                
+                paste0('After filtering, ', nrow(df), ' peptides remain. Geometric mean of k is ', geom.mean %>% round(3), ' and geometric CV is ', geom.cv %>% round(2)," %.")
+                
+        }
+        
+})

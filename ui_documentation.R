@@ -19,8 +19,8 @@ documentation_page <- function(){
                                  p("Server Version:"),
                                  p(code("1.1.1")),
                                  br(),
-                                 p("Gene Ontology Updated:"),
-                                 p(code(textOutput("GOUpdateDate"))),
+                                 p("Annotation Updated:"),
+                                 p(code(textOutput("annotUpdateDate"))),
                                  br(),
                                  p("Contact:"),
                                  p("Edward Lau - edward.lau@me.com")
@@ -44,8 +44,8 @@ documentation_page <- function(){
                                  br(),
                                  p("The isotopomer table must contain the following columnes with the exact headers:"),
                                  p(tags$b("ID: "), "an integer ID that maps the isotopomer entry to the ID of a peptide in the peptide table"),
-                                 p(tags$b("t "), "a float denoting the time point (in days) from which the isotopomer was measured"),
-                                 p(tags$b("A0: "), "a float denoting the RIA of this particular time point. For amino acid labeling experiment this is currently hard-coded
+                                 p(tags$b("t: "), "a floating point number denoting the time point (in days) from which the isotopomer was measured"),
+                                 p(tags$b("A0: "), "a floating point number denoting the RIA of this particular time point. For amino acid labeling experiment this is currently hard-coded
                                    to represent heavy/(light+heavy) ratio."),
                                  br(),
                                  p("Download sample ", tags$a(href = "small-pep.txt", target="blank", "peptide"), 

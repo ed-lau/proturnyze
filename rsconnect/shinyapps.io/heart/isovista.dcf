@@ -2,8 +2,9 @@ name: isovista
 account: heart
 server: shinyapps.io
 appId: 130250
-bundleId: 580032
+bundleId: 599826
 url: https://heart.shinyapps.io/isovista/
-when: 1475879073.24457
+when: 1477694987.75384
 asMultiple: FALSE
 asStatic: FALSE
+ignoredFiles: data/aa_k 2.txt|data/aa_l 2.txt|data/aa_m 2.txt

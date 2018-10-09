@@ -42,6 +42,14 @@ NSModel_dk <-function(x, k, N, kp, pss, a, dA){
 
 # This is an adaptaion of the Guan et al. two-compartment model - supply t, a, Amax, ksyn, and kdeg, return A0.
 CCModel <- function(t, kdeg, ksyn, a, Amax) {
+        """
+        t = time
+        kdeg = degradation rate
+        ksyn = precursor accumulation rate
+        a = initial value
+        Amax = final value
+        plot(CCModel(t=0:30, kdeg=0.3, ksyn=0.5, a=0.60, Amax=0.30))
+        """
         
         a + (Amax-a) * (1.0 - (exp(-t*kdeg)*ksyn - exp(-t*ksyn)*kdeg)/
                                 (ksyn - kdeg))

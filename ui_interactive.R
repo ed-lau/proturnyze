@@ -112,8 +112,11 @@ interactive_page <- function() {
                                                   column(4,
                                                          br(),
                                                          # For the peptides within the selected protein, how many data points are they found in.
-                                                         sliderInput("livFilter_pro_pep_DP", "Filter peptides within selected protein 
-                                                                     by DP", min = 2, max = 20, step = 1, value = c(5,15)),
+                                                         sliderInput("livFilter_pro_pep_DP", "Filter peptides within the selected protein 
+                                                                     by the number of quantified data points", min = 2, max = 20, step = 1, value = c(5,15)),
+                                                         
+                                                         sliderInput("livFilter_pro_pep_num_k", "Filter peptides within the selected protein
+                                                                     by the number of lysines", min = 0, max = 5, step = 1, value = c(0,1)),
                                                          br()
                                                   ),
                                                   column(8,
@@ -128,16 +131,22 @@ interactive_page <- function() {
                                           fluidRow(
                                                   column(4,
                                                          br(),
-                                                         p("Coming soon"),
+                                                         actionButton("livProteinPeptideGoButton", "Click here to begin fitting", icon=icon("play"),  width='100%'),
+                                                         hr(),
+                                                         sliderInput("livFilter_pro_pep_R2", "Display only peptides within this R2 range", min = 0, max = 1, step = 0.01, value = c(0,1)),
                                                          #sliderInput("livFilter_pep_R2_CC", "Filter peptides by R2", min = 1, max = 1000, step = 1, value = c(1,1000)),
                                                          br()
                                                   ),
                                                   column(4,
                                                           plotOutput("livDisplayProteinPeptide_SS1"),
+                                                          br(),
+                                                          textOutput("livDisplayProteinPeptideSS1Text"),
                                                           br()
                                                   ),
                                                   column(4,
                                                          plotOutput("livDisplayProteinPeptide_CC1"),
+                                                         br(),
+                                                         textOutput("livDisplayProteinPeptideCC1Text"),
                                                          br()
                                                   )
                                                   )

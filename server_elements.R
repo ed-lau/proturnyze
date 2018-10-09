@@ -1,6 +1,6 @@
 ######
 ######
-###### Helper Functions that are Shared Across Multiple Software FUnctions
+###### Helper Functions that are Shared Across Multiple Software Functions
 ######
 ######
 
